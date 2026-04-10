@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const jpeg = require('jpeg-js');
+const os = require('os');
 
 const JPRX_BASE_URL = 'https://jprx.m.qq.com';
 const WX_BASE_URL = 'https://open.weixin.qq.com';
@@ -521,6 +522,52 @@ async function fetchApiKey(session) {
   return apiKey;
 }
 
+function buildRiskAssessPayload(session) {
+  const now = new Date();
+  const offsetMinutes = -now.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const absoluteMinutes = Math.abs(offsetMinutes);
+  const pad = (value, size = 2) => String(value).padStart(size, '0');
+
+  const payload = {
+    scene: 'login',
+    userId: session.userId || '',
+    extra: {
+      client_end: 'QClaw',
+    },
+    eventTime:
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+      `T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}.` +
+      `${pad(now.getMilliseconds(), 3)}${sign}${pad(Math.floor(absoluteMinutes / 60))}:${pad(absoluteMinutes % 60)}`,
+  };
+
+  const platform = os.platform();
+  if (platform === 'darwin') {
+    payload.extra.macOS_id = session.guid || '';
+  } else if (platform === 'win32') {
+    payload.extra.windows_id = session.guid || '';
+  }
+
+  return payload;
+}
+
+async function performRiskAssess(session) {
+  if (!session.userId) {
+    log('当前没有 userId，跳过 4155 riskAssess。');
+    return;
+  }
+
+  log('正在调用 4155 上报首次登录风控事件...');
+  const riskResult = await postJprx('/data/4155/forward', buildRiskAssessPayload(session), session);
+
+  if (!riskResult.success) {
+    log(`4155 调用失败: ${riskResult.message}`);
+    return;
+  }
+
+  log('4155 调用成功。');
+}
+
 function printApiKey(apiKey) {
   process.stdout.write('\n');
   log('apiKey 获取成功。');
@@ -559,6 +606,7 @@ async function run() {
       const code = await waitForWxCode(uuid);
       await completeLogin(session, code);
       const apiKey = await fetchApiKey(session);
+      await performRiskAssess(session);
       printApiKey(apiKey);
       return;
     } catch (error) {
