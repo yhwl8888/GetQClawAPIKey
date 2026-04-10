@@ -51,7 +51,7 @@ https://mmgrcalltoken.3g.qq.com/aizone/v1
 
 基于当前实测，下面这些模型已验证可以正常调用：
 
-- `modelroute`
+- `modelroute` （貌似是qclaw默认的模型，是后台动态切换的）
 - `deepseek-v3.2`
 
 模型通过请求体里的 `model` 字段指定，例如：
