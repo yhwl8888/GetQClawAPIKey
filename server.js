@@ -172,7 +172,7 @@ function mapUserInfo(rawUserInfo, fallbackGuid) {
     nickname: firstString(source.nickname, source.nick_name),
     avatar: firstString(source.avatar, source.avatar_url, source.head_img_url, source.head_img),
     guid: firstString(source.guid, fallbackGuid),
-    userId: firstString(source.userId, source.user_id),
+    userId: firstString(source.userId, source.user_id, source.uid, source.uin),
     ...source,
   };
 }
@@ -196,15 +196,29 @@ function applyLoginContext(session, result) {
       result.raw?.data?.data?.userInfo,
       result.raw?.data?.data?.user_info,
       result.raw?.resp?.data?.userInfo,
-      result.raw?.resp?.data?.user_info
+      result.raw?.resp?.data?.user_info,
+      result.data,
+      result.raw?.data?.resp?.data,
+      result.raw?.data?.data,
+      result.raw?.resp?.data
     ) || {};
 
   const userInfo = mapUserInfo(rawUserInfo, session.guid);
   const userId = firstString(
     userInfo.userId,
     userInfo.user_id,
+    userInfo.uid,
+    userInfo.uin,
     result.data?.userId,
-    result.data?.user_id
+    result.data?.user_id,
+    result.data?.uid,
+    result.data?.uin,
+    result.raw?.data?.userId,
+    result.raw?.data?.user_id,
+    result.raw?.data?.resp?.data?.userId,
+    result.raw?.data?.resp?.data?.user_id,
+    result.raw?.data?.data?.userId,
+    result.raw?.data?.data?.user_id
   );
   const guid = firstString(
     userInfo.guid,
@@ -552,11 +566,6 @@ function buildRiskAssessPayload(session) {
 }
 
 async function performRiskAssess(session) {
-  if (!session.userId) {
-    log('当前没有 userId，跳过 4155 riskAssess。');
-    return;
-  }
-
   log('正在调用 4155 上报首次登录风控事件...');
   const riskResult = await postJprx('/data/4155/forward', buildRiskAssessPayload(session), session);
 
