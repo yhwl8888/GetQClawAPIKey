@@ -54,6 +54,6 @@ curl 'https://mmgrcalltoken.3g.qq.com/aizone/v1/chat/completions' \
   "messages": [
     { "role": "user", "content": "你好" }
   ],
-  "max_tokens": 64
+  "max_tokens": 10000
 }
 ```
