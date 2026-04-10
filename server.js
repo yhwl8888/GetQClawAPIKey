@@ -546,6 +546,7 @@ function buildRiskAssessPayload(session) {
   const payload = {
     scene: 'login',
     userId: session.userId || '',
+    deviceToken: session.guid || '',
     extra: {
       client_end: 'QClaw',
     },
@@ -566,15 +567,20 @@ function buildRiskAssessPayload(session) {
 }
 
 async function performRiskAssess(session) {
-  log('正在调用 4155 上报首次登录风控事件...');
-  const riskResult = await postJprx('/data/4155/forward', buildRiskAssessPayload(session), session);
-
-  if (!riskResult.success) {
-    log(`4155 调用失败: ${riskResult.message}`);
+  if (!session.guid) {
+    log('当前没有 guid，跳过 4155。');
     return;
   }
 
-  log('4155 调用成功。');
+  log('正在调用 4155 上报首次登录风控事件... deviceToken=guid');
+  const riskResult = await postJprx('/data/4155/forward', buildRiskAssessPayload(session), session);
+
+  if (!riskResult.success) {
+    log(`4155 调用失败: ${riskResult.message} (deviceToken=guid)`);
+    return;
+  }
+
+  log('4155 调用成功。deviceToken=guid');
 }
 
 function printApiKey(apiKey) {
