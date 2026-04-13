@@ -93,6 +93,7 @@ https://mmgrcalltoken.3g.qq.com/aizone/v1
 当前已验证可正常调用：
 
 - `modelroute`（疑似 QClaw 默认模型，后台可动态切换）
+- `deepseek-v3.1-terminus`
 - `deepseek-v3.2`
 
 通过请求体里的 `model` 字段切换模型，例如：
