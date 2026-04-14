@@ -307,7 +307,12 @@ async function fetchQrChallenge(session) {
   }
 
   session.uuid = uuid;
-  return { state, uuid, qrPageUrl };
+  return {
+    state,
+    uuid,
+    qrPageUrl,
+    qrImageUrl: `${WX_BASE_URL}/connect/qrcode/${uuid}`,
+  };
 }
 
 function decodeJpegToBinaryMatrix(buffer) {
@@ -632,9 +637,11 @@ async function run() {
 
   while (true) {
     try {
-      const { uuid } = await fetchQrChallenge(session);
+      const { uuid, qrPageUrl } = await fetchQrChallenge(session);
       log(`guid=${session.guid}`);
       log(`state=${session.state}`);
+      log(`扫码地址：${qrPageUrl}`);
+      log('如果终端里的二维码显示异常，请复制上面的地址到浏览器打开后扫码。');
       log('请使用微信扫描下面的二维码：');
       await printQrCode(uuid);
 
