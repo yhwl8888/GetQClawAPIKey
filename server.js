@@ -1,12 +1,12 @@
 const crypto = require('crypto');
 const jpeg = require('jpeg-js');
-const os = require('os');
 
 const JPRX_BASE_URL = 'https://jprx.m.qq.com';
 const WX_BASE_URL = 'https://open.weixin.qq.com';
 const WX_LONGPOLL_BASE_URL = 'https://long.open.weixin.qq.com';
 const APP_VERSION = '1.4.0';
 const APP_ENV = 'release';
+const OPENCLAW_CLIENT_VERSION = '2026.3.13';
 const POLL_INTERVAL_MS = 2000;
 
 const WX_LOGIN_INFO = {
@@ -61,6 +61,10 @@ function firstObject(...candidates) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createTraceId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 16)}`;
 }
 
 function gcd(a, b) {
@@ -126,17 +130,24 @@ function normalizeJprxResponse(raw, response) {
 }
 
 async function postJprx(endpoint, payload, session) {
+  const accountId = session.userId || '1';
   const headers = {
     'Content-Type': 'application/json',
     'X-Version': '1',
     'X-Token': session.loginKey || '',
     'X-Guid': session.guid || '1',
-    'X-Account': session.userId || '1',
+    'X-Account': accountId,
+    'X-Account-Id': accountId,
     'X-Session': '',
+    'X-Trace-Id': createTraceId(),
   };
 
   if (session.jwtToken) {
     headers['X-OpenClaw-Token'] = session.jwtToken;
+  }
+
+  if (OPENCLAW_CLIENT_VERSION) {
+    headers['X-OpenClaw-ClientVersion'] = OPENCLAW_CLIENT_VERSION;
   }
 
   const requestBody = {
@@ -549,19 +560,13 @@ function buildRiskAssessPayload(session) {
     deviceToken: session.guid || '',
     extra: {
       client_end: 'QClaw',
+      macOS_id: session.guid || '',
     },
     eventTime:
       `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
       `T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}.` +
       `${pad(now.getMilliseconds(), 3)}${sign}${pad(Math.floor(absoluteMinutes / 60))}:${pad(absoluteMinutes % 60)}`,
   };
-
-  const platform = os.platform();
-  if (platform === 'darwin') {
-    payload.extra.macOS_id = session.guid || '';
-  } else if (platform === 'win32') {
-    payload.extra.windows_id = session.guid || '';
-  }
 
   return payload;
 }
